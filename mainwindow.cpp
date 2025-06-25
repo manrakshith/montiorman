@@ -35,6 +35,7 @@ void MainWindow::initMonitor(){
         return;
     }
     readCurrentBrightness();
+    readCurrentContrast();
 
 }
 
@@ -53,7 +54,7 @@ void MainWindow::readCurrentBrightness()
             ui->brightnessSlider->setMinimum(minBrightness);
             ui->brightnessSlider->setMaximum(maxBrightness);
             ui->brightnessSlider->setValue(currBrightness);
-            ui->brightness_value->setText(QString("Brightness: %1").arg(currBrightness));
+            ui->brightness_value->setText(QString("%1").arg(currBrightness));
 
         } else {
             qDebug() << "Failed to get monitor brightness.";
@@ -64,18 +65,18 @@ void MainWindow::readCurrentBrightness()
 void MainWindow::readCurrentContrast(){
    if (pMonitors && monitorCount > 0) {
         DWORD minConstrast = 0, currConstrast = 0, maxConstrast = 0;
-        if (GetMonitorBrightness(pMonitors[0].hPhysicalMonitor, &minBrightness, &currBrightness, &maxBrightness)) {
-            qDebug() << "Monitor brightness range:" << minBrightness << "-" << maxBrightness;
-            qDebug() << "Current brightness:" << currBrightness;
+        if (GetMonitorBrightness(pMonitors[0].hPhysicalMonitor, &minConstrast, &currConstrast, &maxConstrast)) {
+            qDebug() << "Monitor brightness range:" << minConstrast << "-" << maxConstrast;
+            qDebug() << "Current brightness:" << currConstrast;
             // You can update your slider here:
             // ui->horizontalSlider->setMinimum(minBrightness);
             // ui->hosrizontalSlider->setMaximum(maxBrightness);
             // ui->horizontalSlider->setValue(currBrightness);
 
-            ui->brightnessSlider->setMinimum(minBrightness);
-            ui->brightnessSlider->setMaximum(maxBrightness);
-            ui->brightnessSlider->setValue(currBrightness);
-            ui->brightness_value->setText(QString("Brightness: %1").arg(currBrightness));
+            ui->contrastSlider->setMinimum(minConstrast);
+            ui->contrastSlider->setMaximum(maxConstrast);
+            ui->contrastSlider->setValue(currConstrast);
+            ui->contrast_values->setText(QString("%1").arg(currConstrast));
 
         } else {
             qDebug() << "Failed to get monitor brightness.";
