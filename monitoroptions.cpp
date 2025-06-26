@@ -1,25 +1,27 @@
-#include "mainwindow.h"
-#include "ui_mainwindow.h"
+#include "monitoroptions.h"
+#include "ui_monitoroptions.h"
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+
+MonitorOptions::MonitorOptions(QWidget *parent)
+    : QDialog(parent, Qt::Popup | Qt::FramelessWindowHint)
+    , ui(new Ui::MonitorOptions)
 {
     ui->setupUi(this);
-    setWindowTitle("MonitorMan");
     initMonitor();
 }
 
-MainWindow::~MainWindow()
+MonitorOptions::~MonitorOptions()
 {
     delete ui;
-
-    // Clean up
-    DestroyPhysicalMonitors(monitorCount, pMonitors);
-    delete[] pMonitors;
 }
 
-void MainWindow::initMonitor(){
+void MonitorOptions::closeEvent(QCloseEvent *event)
+{
+    hide();
+    event->ignore(); // Prevent app from quitting
+}
+
+void MonitorOptions::initMonitor(){
     hMonitor = MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
 
     monitorCount = 0;
@@ -37,9 +39,17 @@ void MainWindow::initMonitor(){
     readCurrentBrightness();
     readCurrentContrast();
 
-}
+    QString monitorName;
+    for (DWORD i = 0; i < monitorCount; ++i) {
+        monitorName = QString::fromWCharArray(pMonitors[i].szPhysicalMonitorDescription);
+        qDebug() << "Monitor" << i << ":" << monitorName;
+    }
 
-void MainWindow::readCurrentBrightness()
+
+    ui->monitorName->setText(monitorName);
+
+}
+void MonitorOptions::readCurrentBrightness()
 {
     if (pMonitors && monitorCount > 0) {
         DWORD minBrightness = 0, currBrightness = 0, maxBrightness = 0;
@@ -62,8 +72,8 @@ void MainWindow::readCurrentBrightness()
     }
 }
 
-void MainWindow::readCurrentContrast(){
-   if (pMonitors && monitorCount > 0) {
+void MonitorOptions::readCurrentContrast(){
+    if (pMonitors && monitorCount > 0) {
         DWORD minConstrast = 0, currConstrast = 0, maxConstrast = 0;
         if (GetMonitorBrightness(pMonitors[0].hPhysicalMonitor, &minConstrast, &currConstrast, &maxConstrast)) {
             qDebug() << "Monitor brightness range:" << minConstrast << "-" << maxConstrast;
@@ -81,10 +91,10 @@ void MainWindow::readCurrentContrast(){
         } else {
             qDebug() << "Failed to get monitor brightness.";
         }
-   }
+    }
 }
 
-void MainWindow::on_brightnessSlider_sliderMoved(int position)
+void MonitorOptions::on_brightnessSlider_sliderMoved(int position)
 {
     // qDebug() << "position = " << position;
     // Set brightness on the first monitor
@@ -98,7 +108,7 @@ void MainWindow::on_brightnessSlider_sliderMoved(int position)
     }
 }
 
-void MainWindow::on_contrastSlider_sliderMoved(int position)
+void MonitorOptions::on_contrastSlider_sliderMoved(int position)
 {
     if (pMonitors && monitorCount > 0) {
         if (!SetMonitorContrast(pMonitors[0].hPhysicalMonitor, position)) {
@@ -109,4 +119,3 @@ void MainWindow::on_contrastSlider_sliderMoved(int position)
         }
     }
 }
-

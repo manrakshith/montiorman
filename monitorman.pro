@@ -10,13 +10,15 @@ CONFIG += c++17
 
 SOURCES += \
     main.cpp \
-    mainwindow.cpp
+    monitoroptions.cpp \
+    systemtray.cpp
 
 HEADERS += \
-    mainwindow.h
+    monitoroptions.h \
+    systemtray.h
 
 FORMS += \
-    mainwindow.ui
+    monitoroptions.ui
 
 LIBS += -lDxva2
 
@@ -24,3 +26,6 @@ LIBS += -lDxva2
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    res.qrc
