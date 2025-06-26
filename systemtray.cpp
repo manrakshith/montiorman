@@ -4,7 +4,7 @@ SystemTray::SystemTray(QObject *parent)
     : QObject{parent}
 {
     monopt = new MonitorOptions();
-    monopt->show();
+    showMontitorOptions();
     createTrayIcon();
     trayIcon->show();
 }
@@ -28,7 +28,6 @@ void SystemTray::createTrayIcon()
     connect(trayIcon, &QSystemTrayIcon::activated, this, &SystemTray::iconActivated);
 }
 
-
 void SystemTray::iconActivated(QSystemTrayIcon::ActivationReason reason)
 {
     if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick) {
@@ -49,6 +48,17 @@ void SystemTray::iconActivated(QSystemTrayIcon::ActivationReason reason)
         monopt->raise();
         monopt->activateWindow();
     }
+}
+
+void SystemTray::showMontitorOptions(){
+    QScreen *screen = QGuiApplication::primaryScreen();
+    QRect availableGeometry = screen->availableGeometry(); // Excludes taskbar
+    // Calculate bottom-right corner (system tray is usually here)
+    int x = availableGeometry.right() - monopt->width() - 10;
+    int y = availableGeometry.bottom() - monopt->height() - 10;
+
+    monopt->move(x, y);  // Move the dialog near the tray
+    monopt->show();
 }
 
 void SystemTray::showApp()

@@ -27,6 +27,7 @@ private:
     QSystemTrayIcon *trayIcon;
     void createTrayIcon();
     void createActions();
+    void showMontitorOptions();
 
 private slots:
     void iconActivated(QSystemTrayIcon::ActivationReason reason);
