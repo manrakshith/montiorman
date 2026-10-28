@@ -1,0 +1,13 @@
+# Binaries and build artifacts
+bin/
+build/
+*.o
+*.obj
+*.exe
+*.res
+
+# IDE & Editor folders
+.vscode/
+.vs/
+*.user
+
