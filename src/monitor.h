@@ -39,28 +39,28 @@ private:
     DWORD m_lastBrightnessTime = 0;
     DWORD m_lastContrastTime = 0;
 
-    static std::wstring GetMonitorNameFromEDID() {
-        HKEY hDisplayKey = nullptr;
-        if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Enum\\DISPLAY", 0, KEY_READ, &hDisplayKey) != ERROR_SUCCESS) {
-            return L"";
-        }
+    static std::wstring GetMonitorNameForDevice(const wchar_t* adapterDeviceName) {
+        if (!adapterDeviceName || adapterDeviceName[0] == L'\0') return L"";
 
-        wchar_t monitorSubKey[256];
-        DWORD subKeyLen = 256;
-        for (DWORD i = 0; RegEnumKeyExW(hDisplayKey, i, monitorSubKey, &subKeyLen, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS; ++i) {
-            subKeyLen = 256;
-            HKEY hMonKey = nullptr;
-            if (RegOpenKeyExW(hDisplayKey, monitorSubKey, 0, KEY_READ, &hMonKey) == ERROR_SUCCESS) {
-                wchar_t instanceKey[256];
-                DWORD instLen = 256;
-                for (DWORD j = 0; RegEnumKeyExW(hMonKey, j, instanceKey, &instLen, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS; ++j) {
-                    instLen = 256;
-                    std::wstring paramPath = std::wstring(instanceKey) + L"\\Device Parameters";
-                    HKEY hParamKey = nullptr;
-                    if (RegOpenKeyExW(hMonKey, paramPath.c_str(), 0, KEY_READ, &hParamKey) == ERROR_SUCCESS) {
+        DISPLAY_DEVICEW ddMon{sizeof(ddMon)};
+        for (DWORD j = 0; EnumDisplayDevicesW(adapterDeviceName, j, &ddMon, 1); ++j) {
+            std::wstring devId = ddMon.DeviceID;
+            // Example: \\?\DISPLAY#BNQ7964#4&1e0ce86e&0&UID214595#{...}
+            size_t p1 = devId.find(L"DISPLAY#");
+            if (p1 != std::wstring::npos) {
+                p1 += 8;
+                size_t p2 = devId.find(L'#', p1);
+                if (p2 != std::wstring::npos) {
+                    std::wstring modelId = devId.substr(p1, p2 - p1);
+                    size_t p3 = devId.find(L'#', p2 + 1);
+                    std::wstring instanceId = (p3 != std::wstring::npos) ? devId.substr(p2 + 1, p3 - (p2 + 1)) : devId.substr(p2 + 1);
+
+                    std::wstring regPath = L"SYSTEM\\CurrentControlSet\\Enum\\DISPLAY\\" + modelId + L"\\" + instanceId + L"\\Device Parameters";
+                    HKEY hKey = nullptr;
+                    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, regPath.c_str(), 0, KEY_READ, &hKey) == ERROR_SUCCESS) {
                         BYTE edid[512] = {0};
                         DWORD edidSize = sizeof(edid);
-                        if (RegQueryValueExW(hParamKey, L"EDID", nullptr, nullptr, edid, &edidSize) == ERROR_SUCCESS && edidSize >= 128) {
+                        if (RegQueryValueExW(hKey, L"EDID", nullptr, nullptr, edid, &edidSize) == ERROR_SUCCESS && edidSize >= 128) {
                             for (int blk = 54; blk <= 108; blk += 18) {
                                 if (edid[blk] == 0x00 && edid[blk + 1] == 0x00 && edid[blk + 2] == 0x00 && edid[blk + 3] == 0xFC) {
                                     std::string name;
@@ -70,36 +70,34 @@ private:
                                     }
                                     while (!name.empty() && name.back() == ' ') name.pop_back();
                                     if (!name.empty()) {
-                                        RegCloseKey(hParamKey);
-                                        RegCloseKey(hMonKey);
-                                        RegCloseKey(hDisplayKey);
+                                        RegCloseKey(hKey);
                                         return std::wstring(name.begin(), name.end());
                                     }
                                 }
                             }
                         }
-                        RegCloseKey(hParamKey);
+                        RegCloseKey(hKey);
                     }
                 }
-                RegCloseKey(hMonKey);
+            }
+
+            // Fallback to DeviceString if non-generic
+            if (ddMon.DeviceString[0] != L'\0' && 
+                wcscmp(ddMon.DeviceString, L"Generic PnP Monitor") != 0 &&
+                wcscmp(ddMon.DeviceString, L"Generic Monitor") != 0) {
+                return ddMon.DeviceString;
             }
         }
-        RegCloseKey(hDisplayKey);
         return L"";
     }
 
     static BOOL CALLBACK EnumCallback(HMONITOR hMon, HDC, LPRECT, LPARAM lParam) {
         auto* self = reinterpret_cast<MonitorManager*>(lParam);
 
-        std::wstring friendlyName;
+        std::wstring specificName;
         MONITORINFOEXW mi{sizeof(mi)};
         if (GetMonitorInfoW(hMon, &mi)) {
-            DISPLAY_DEVICEW ddMon{sizeof(ddMon)};
-            if (EnumDisplayDevicesW(mi.szDevice, 0, &ddMon, 0)) {
-                if (ddMon.DeviceString[0] != L'\0') {
-                    friendlyName = ddMon.DeviceString;
-                }
-            }
+            specificName = GetMonitorNameForDevice(mi.szDevice);
         }
 
         DWORD count = 0;
@@ -114,15 +112,10 @@ private:
                 for (DWORD i = 0; i < count; ++i) {
                     PhysicalMonitorDevice dev;
                     std::wstring dName = pPhys[i].szPhysicalMonitorDescription;
-                    if (dName.empty() || dName == L"Generic PnP Monitor" || dName == L"Generic Monitor") {
-                        std::wstring edidName = GetMonitorNameFromEDID();
-                        if (!edidName.empty()) {
-                            dName = edidName;
-                        } else if (!friendlyName.empty() && friendlyName != L"Generic PnP Monitor") {
-                            dName = friendlyName;
-                        } else {
-                            dName = L"Display " + std::to_wstring(self->m_devices.size() + 1);
-                        }
+                    if (!specificName.empty()) {
+                        dName = specificName;
+                    } else if (dName.empty() || dName == L"Generic PnP Monitor" || dName == L"Generic Monitor") {
+                        dName = L"Display " + std::to_wstring(self->m_devices.size() + 1);
                     }
                     dev.name = dName;
                     dev.hMon = hMon;
@@ -206,8 +199,12 @@ public:
 
                         for (DWORD i = 0; i < count; ++i) {
                             PhysicalMonitorDevice dev;
-                            std::wstring edidName = GetMonitorNameFromEDID();
-                            dev.name = !edidName.empty() ? edidName : L"Primary Display";
+                            std::wstring specificName;
+                            MONITORINFOEXW mi{sizeof(mi)};
+                            if (GetMonitorInfoW(hPrimary, &mi)) {
+                                specificName = GetMonitorNameForDevice(mi.szDevice);
+                            }
+                            dev.name = !specificName.empty() ? specificName : L"Primary Display";
                             dev.hMon = hPrimary;
                             dev.hPhysicalMonitor = pPhys[i].hPhysicalMonitor;
 
