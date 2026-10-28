@@ -1,6 +1,6 @@
 # MonitorMan
 
-### MonitorMan is a lightweight, native Windows desktop utility designed to control external monitor brightness and contrast via VESA DDC/CI (Display Data Channel Command Interface).
+#### MonitorMan is a lightweight, native Windows desktop utility designed to control external monitor brightness and contrast via VESA DDC/CI (Display Data Channel Command Interface).
 
 ---
 
