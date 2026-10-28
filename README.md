@@ -1,7 +1,7 @@
 # MonitorMan
 
-MonitorMan is a lightweight, high-performance native Windows desktop utility designed to control external monitor luminance (brightness) and contrast via VESA DDC/CI (Display Data Channel Command Interface).
-(UNDER TESTING)
+### MonitorMan is a lightweight, native Windows desktop utility designed to control external monitor brightness and contrast via VESA DDC/CI (Display Data Channel Command Interface).
+
 ---
 
 ## Key Features
@@ -14,32 +14,14 @@ MonitorMan is a lightweight, high-performance native Windows desktop utility des
 - **Windows 11 Fluent Flyout**:
   - Sleek, borderless flyout window featuring DWM rounded corners and native dark/light theme detection.
   - Automatically docks above the system tray taskbar and supports instantaneous summoning.
-  - Right-click anywhere on the flyout to access the context menu and quick settings.
 
-- **Solar Circadian Daylight Tracking**:
+- **Solar Circadian Daylight Tracking**: (under development)
   - **Dynamic Sun-Tracking Luminance**: Automatically adjusts monitor brightness throughout the day to counteract sunlight glare during peak daylight hours and dim gently in the evening to reduce eye strain.
   - **Two Tracking Engines**:
     - **Smooth Solar Bell Curve**: Sinusoidal mathematical curve following the sun from sunrise (06:30 AM) to solar noon (12:30 PM peak) to sunset (06:30 PM), with nighttime floor rest.
     - **4-Point Custom Waypoints**: Fully customizable schedule targeting specific brightness levels for Morning (07:00), Midday Solar Peak (13:00), Evening Dusk (18:30), and Bedtime (23:00).
   - **Full Manual Override Freedom**: Adjusting the brightness slider in the flyout never disables solar tracking. Instead, MonitorMan preserves your personal preference offset across the entire daylight curve!
   - **Hardware I2C Safety**: Luminance changes are applied via smooth 1% micro-steps to prevent display flicker and avoid I2C bus saturation.
-
-- **Configurable Size Modes**:
-  - **Sleek**: Compact layout for a minimal screen footprint (`340px × 82px`).
-  - **Default**: Standard Windows 11 Fluent layout (`390px × 96px`).
-  - **Large**: Expanded layout with larger touch and click targets (`440px × 114px`).
-  - Selected size mode persists in the Windows Registry (`HKCU\Software\MonitorMan`).
-
-- **Interactive Sliders**:
-  - **Direct Numeric Input**: Click any numeric badge to type in an exact value (`0`–`100`) directly.
-  - **Velocity-Sensitive Mouse Wheel**: Fine scrolling adjusts by 1% per notch; rapid scrolling dynamically accelerates value changes.
-  - **Live Hardware Synchronization**: Values automatically sync from the physical monitor when opened.
-
-- **Spacious & Modern Settings Dashboard**:
-  - Dedicated DPI-scaled Settings window accessible via tray or flyout right-click.
-  - Dual-tab navigation:
-    - **General Tab**: Connected display status, DDC/CI hardware info, flyout sizing options, and Windows startup toggle.
-    - **Solar Day Tracking Tab**: Complete circadian dashboard with real-time curve readouts, stepper level controls, and offset reset.
 
 - **Global Shortcuts & System Tray**:
   - Hotkeys: `Win + Alt + B` or `Ctrl + Alt + B` to toggle the flyout from any application or game.
