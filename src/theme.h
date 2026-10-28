@@ -111,3 +111,29 @@ inline HFONT CreateSegoeFont(int pointSize, int weight = FW_NORMAL) {
     return hFont;
 }
 
+inline HFONT CreateIconFont(int pointSize) {
+    HDC hdc = GetDC(nullptr);
+    int logPixelsY = GetDeviceCaps(hdc, LOGPIXELSY);
+    ReleaseDC(nullptr, hdc);
+
+    int height = -MulDiv(pointSize, logPixelsY, 72);
+
+    // Prefer Windows 11 "Segoe Fluent Icons", then Windows 10 "Segoe MDL2 Assets"
+    HFONT hFont = CreateFontW(
+        height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+        CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+        L"Segoe Fluent Icons"
+    );
+
+    if (!hFont) {
+        hFont = CreateFontW(
+            height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+            DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+            L"Segoe MDL2 Assets"
+        );
+    }
+    return hFont;
+}
+

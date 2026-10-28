@@ -4,10 +4,11 @@
 #include <string>
 #include "ui_slider.h"
 
-#define ID_TRAY_OPEN    2001
-#define ID_TRAY_REFRESH 2002
-#define ID_TRAY_STARTUP 2003
-#define ID_TRAY_EXIT    2004
+#define ID_TRAY_OPEN     2001
+#define ID_TRAY_SETTINGS 2002
+#define ID_TRAY_REFRESH  2003
+#define ID_TRAY_STARTUP  2004
+#define ID_TRAY_EXIT     2005
 
 #define ID_MODE_SLEEK   3101
 #define ID_MODE_DEFAULT 3102

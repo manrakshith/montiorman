@@ -5,9 +5,15 @@ echo ==========================================
 echo        Building Native MonitorMan         
 echo ==========================================
 
-:: Add MinGW to PATH if not already present
-if exist "C:\Qt\Tools\mingw1310_64\bin\g++.exe" (
+:: Add modern MinGW to PATH if found
+if exist "C:\Qt\Tools\mingw1120_64\bin\g++.exe" (
+    set "PATH=C:\Qt\Tools\mingw1120_64\bin;!PATH!"
+) else if exist "C:\Qt\Tools\mingw1310_64\bin\g++.exe" (
     set "PATH=C:\Qt\Tools\mingw1310_64\bin;!PATH!"
+) else if exist "C:\msys64\ucrt64\bin\g++.exe" (
+    set "PATH=C:\msys64\ucrt64\bin;!PATH!"
+) else if exist "C:\msys64\mingw64\bin\g++.exe" (
+    set "PATH=C:\msys64\mingw64\bin;!PATH!"
 )
 
 :: Check for compiler

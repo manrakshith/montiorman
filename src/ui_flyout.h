@@ -16,11 +16,15 @@ private:
     Theme m_theme;
     HFONT m_fontIcon = nullptr;
     HFONT m_fontValue = nullptr;
+    HFONT m_fontTitle = nullptr;
     HBRUSH m_hEditBgBrush = nullptr;
 
     MonitorManager* m_monitorMgr = nullptr;
     size_t m_currentDeviceIndex = 0;
     SizeMode m_sizeMode = SizeMode::Default;
+
+    RECT m_headerRect{0, 0, 0, 0};
+    bool m_isHeaderHovered = false;
 
     FluentSlider m_brightnessSlider;
     FluentSlider m_contrastSlider;
@@ -45,30 +49,34 @@ private:
 
     void GetFlyoutDimensions(int& width, int& height) const {
         if (m_sizeMode == SizeMode::Sleek) {
-            width = 280;
-            height = 74;
+            width = 340;
+            height = 82;
         } else if (m_sizeMode == SizeMode::Large) {
-            width = 410;
-            height = 118;
+            width = 440;
+            height = 114;
         } else { // Default
-            width = 330;
-            height = 92;
+            width = 390;
+            height = 96;
         }
     }
 
     void InitFonts() {
         if (m_fontIcon) DeleteObject(m_fontIcon);
         if (m_fontValue) DeleteObject(m_fontValue);
+        if (m_fontTitle) DeleteObject(m_fontTitle);
 
         if (m_sizeMode == SizeMode::Sleek) {
-            m_fontIcon  = CreateSegoeFont(11, FW_NORMAL);
-            m_fontValue = CreateSegoeFont(9, FW_SEMIBOLD);
+            m_fontTitle = CreateSegoeFont(8, FW_SEMIBOLD);
+            m_fontIcon  = CreateIconFont(10);
+            m_fontValue = CreateSegoeFont(8, FW_NORMAL);
         } else if (m_sizeMode == SizeMode::Large) {
-            m_fontIcon  = CreateSegoeFont(16, FW_NORMAL);
-            m_fontValue = CreateSegoeFont(12, FW_SEMIBOLD);
+            m_fontTitle = CreateSegoeFont(9, FW_SEMIBOLD);
+            m_fontIcon  = CreateIconFont(13);
+            m_fontValue = CreateSegoeFont(9, FW_SEMIBOLD);
         } else { // Default
-            m_fontIcon  = CreateSegoeFont(13, FW_NORMAL);
-            m_fontValue = CreateSegoeFont(10, FW_SEMIBOLD);
+            m_fontTitle = CreateSegoeFont(8, FW_SEMIBOLD);
+            m_fontIcon  = CreateIconFont(11);
+            m_fontValue = CreateSegoeFont(8, FW_SEMIBOLD);
         }
     }
 
@@ -77,22 +85,23 @@ private:
         GetClientRect(m_hwnd, &rc);
         int w = rc.right - rc.left;
 
-        int rowHeight = 36;
-        int topPadding = 8;
+        int rowHeight = 30;
+        int topPadding = 25;
         int spacing = 4;
 
         if (m_sizeMode == SizeMode::Sleek) {
-            rowHeight = 28;
-            topPadding = 6;
+            rowHeight = 26;
+            topPadding = 21;
             spacing = 2;
         } else if (m_sizeMode == SizeMode::Large) {
-            rowHeight = 46;
-            topPadding = 11;
+            rowHeight = 36;
+            topPadding = 28;
             spacing = 6;
         }
 
-        m_brightnessSlider.SetBounds(10, topPadding, w - 20, rowHeight, m_sizeMode);
-        m_contrastSlider.SetBounds(10, topPadding + rowHeight + spacing, w - 20, rowHeight, m_sizeMode);
+        m_headerRect = {14, 5, w - 14, topPadding - 3};
+        m_brightnessSlider.SetBounds(12, topPadding, w - 24, rowHeight, m_sizeMode);
+        m_contrastSlider.SetBounds(12, topPadding + rowHeight + spacing, w - 24, rowHeight, m_sizeMode);
     }
 
     void SyncFromMonitor() {
@@ -100,6 +109,8 @@ private:
         if (m_currentDeviceIndex >= m_monitorMgr->GetDeviceCount()) {
             m_currentDeviceIndex = 0;
         }
+
+        m_monitorMgr->ReadLiveValues(m_currentDeviceIndex);
 
         auto* dev = m_monitorMgr->GetDevice(m_currentDeviceIndex);
         if (!dev) return;
@@ -124,8 +135,25 @@ private:
         m_hEditBgBrush = CreateSolidBrush(m_theme.isDark ? RGB(45, 45, 45) : RGB(255, 255, 255));
     }
 
+    std::function<void()> m_onOpenSettings;
+    std::function<void(int)> m_onBrightnessChanged;
+
+public:
+    void SetOnOpenSettings(std::function<void()> cb) { m_onOpenSettings = cb; }
+    void SetOnBrightnessChanged(std::function<void(int)> cb) { m_onBrightnessChanged = cb; }
+
+    void UpdateBrightnessDisplay(int val) {
+        m_brightnessSlider.currentVal = val;
+        if (m_hwnd && IsWindowVisible(m_hwnd)) {
+            InvalidateRect(m_hwnd, &m_brightnessSlider.bounds, FALSE);
+        }
+    }
+
+private:
     void ShowSettingsMenu(POINT pt) {
         HMENU hMenu = CreatePopupMenu();
+        AppendMenuW(hMenu, MF_STRING, ID_TRAY_SETTINGS, L"Settings...");
+        AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
 
         HMENU hSizeSubMenu = CreatePopupMenu();
         AppendMenuW(hSizeSubMenu, MF_STRING, ID_MODE_SLEEK, L"Sleek (Slim & Compact)");
@@ -160,18 +188,21 @@ private:
             ApplyThemeToDwm();
 
             m_brightnessSlider.editControlId = 1001;
-            m_brightnessSlider.icon = L"\x2600"; // ☀️ Sun symbol
+            m_brightnessSlider.icon = L"\xE706"; // Fluent Brightness Sun
             m_brightnessSlider.onValueChanged = [this](int val) {
                 if (m_monitorMgr) {
-                    m_monitorMgr->SetBrightnessAsync(m_currentDeviceIndex, val);
+                    m_monitorMgr->SetBrightness(m_currentDeviceIndex, val, false);
+                }
+                if (m_onBrightnessChanged) {
+                    m_onBrightnessChanged(val);
                 }
             };
 
             m_contrastSlider.editControlId = 1002;
-            m_contrastSlider.icon = L"\x25D0"; // ◐ Contrast symbol
+            m_contrastSlider.icon = L"\xE793"; // Fluent Contrast Icon
             m_contrastSlider.onValueChanged = [this](int val) {
                 if (m_monitorMgr) {
-                    m_monitorMgr->SetContrastAsync(m_currentDeviceIndex, val);
+                    m_monitorMgr->SetContrast(m_currentDeviceIndex, val, false);
                 }
             };
             return 0;
@@ -209,6 +240,9 @@ private:
             case ID_TRAY_OPEN:
                 ShowAtTray();
                 break;
+            case ID_TRAY_SETTINGS:
+                if (m_onOpenSettings) m_onOpenSettings();
+                break;
             case ID_MODE_SLEEK:
                 SetSizeMode(SizeMode::Sleek);
                 break;
@@ -245,6 +279,10 @@ private:
             changed |= m_contrastSlider.OnMouseWheel(pt.x, pt.y, zDelta);
 
             if (changed) {
+                if (m_monitorMgr) {
+                    m_monitorMgr->SetBrightness(m_currentDeviceIndex, m_brightnessSlider.currentVal, true);
+                    m_monitorMgr->SetContrast(m_currentDeviceIndex, m_contrastSlider.currentVal, true);
+                }
                 InvalidateRect(m_hwnd, nullptr, FALSE);
             }
             return 0;
@@ -257,9 +295,22 @@ private:
             return 0;
         }
 
+        case WM_SETCURSOR: {
+            if (m_monitorMgr && m_monitorMgr->GetDeviceCount() > 1) {
+                POINT pt;
+                GetCursorPos(&pt);
+                ScreenToClient(m_hwnd, &pt);
+                if (PtInRect(&m_headerRect, pt)) {
+                    SetCursor(LoadCursor(nullptr, IDC_HAND));
+                    return TRUE;
+                }
+            }
+            break;
+        }
+
         case WM_MOUSEMOVE: {
-            int x = LOWORD(lParam);
-            int y = HIWORD(lParam);
+            int x = GET_X_LPARAM(lParam);
+            int y = GET_Y_LPARAM(lParam);
 
             if (!m_trackingMouse) {
                 TRACKMOUSEEVENT tme{sizeof(tme), TME_LEAVE, m_hwnd, 0};
@@ -268,6 +319,12 @@ private:
             }
 
             bool needRepaint = false;
+            bool overHeader = (m_monitorMgr && m_monitorMgr->GetDeviceCount() > 1 && PtInRect(&m_headerRect, POINT{x, y}));
+            if (overHeader != m_isHeaderHovered) {
+                m_isHeaderHovered = overHeader;
+                needRepaint = true;
+            }
+
             needRepaint |= m_brightnessSlider.OnMouseMove(x, y);
             needRepaint |= m_contrastSlider.OnMouseMove(x, y);
 
@@ -280,6 +337,10 @@ private:
         case WM_MOUSELEAVE: {
             m_trackingMouse = false;
             bool needRepaint = false;
+            if (m_isHeaderHovered) {
+                m_isHeaderHovered = false;
+                needRepaint = true;
+            }
             if (m_brightnessSlider.isHovered || m_brightnessSlider.isNumBoxHovered) {
                 m_brightnessSlider.isHovered = false;
                 m_brightnessSlider.isNumBoxHovered = false;
@@ -298,8 +359,17 @@ private:
 
         case WM_LBUTTONDOWN: {
             SetCapture(m_hwnd);
-            int x = LOWORD(lParam);
-            int y = HIWORD(lParam);
+            int x = GET_X_LPARAM(lParam);
+            int y = GET_Y_LPARAM(lParam);
+
+            if (PtInRect(&m_headerRect, POINT{x, y})) {
+                if (m_monitorMgr && m_monitorMgr->GetDeviceCount() > 1) {
+                    m_currentDeviceIndex = (m_currentDeviceIndex + 1) % m_monitorMgr->GetDeviceCount();
+                    SyncFromMonitor();
+                    InvalidateRect(m_hwnd, nullptr, TRUE);
+                    return 0;
+                }
+            }
 
             if (m_brightnessSlider.OnLButtonDown(x, y, m_hwnd, m_fontValue)) {
                 InvalidateRect(m_hwnd, nullptr, FALSE);
@@ -317,6 +387,11 @@ private:
             bool rep = false;
             rep |= m_brightnessSlider.OnLButtonUp();
             rep |= m_contrastSlider.OnLButtonUp();
+            if (m_monitorMgr) {
+                // Ensure the final value is immediately committed to the monitor hardware
+                m_monitorMgr->SetBrightness(m_currentDeviceIndex, m_brightnessSlider.currentVal, true);
+                m_monitorMgr->SetContrast(m_currentDeviceIndex, m_contrastSlider.currentVal, true);
+            }
             if (rep) {
                 InvalidateRect(m_hwnd, nullptr, FALSE);
             }
@@ -340,6 +415,23 @@ private:
             HBRUSH hBgBrush = CreateSolidBrush(m_theme.bg);
             FillRect(memDC, &rc, hBgBrush);
             DeleteObject(hBgBrush);
+
+            SetBkMode(memDC, TRANSPARENT);
+
+            // Active Monitor Name Label (Clean transparent text)
+            auto* dev = (m_monitorMgr && m_monitorMgr->GetDeviceCount() > 0) 
+                ? m_monitorMgr->GetDevice(m_currentDeviceIndex) : nullptr;
+            std::wstring monitorName = dev ? dev->name : L"Display 1";
+            size_t devCount = m_monitorMgr ? m_monitorMgr->GetDeviceCount() : 1;
+
+            if (devCount > 1) {
+                monitorName += L"  (" + std::to_wstring(m_currentDeviceIndex + 1) + L"/" + std::to_wstring(devCount) + L")";
+            }
+
+            SelectObject(memDC, m_fontTitle);
+            SetTextColor(memDC, m_theme.textSecondary);
+            RECT titleRc = {14, 4, w - 14, m_headerRect.bottom};
+            DrawTextW(memDC, monitorName.c_str(), -1, &titleRc, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS);
 
             // Draw Sliders & Editable Number Badges
             m_brightnessSlider.Draw(memDC, m_theme, m_fontIcon, m_fontValue);
@@ -368,6 +460,7 @@ private:
         case WM_DESTROY: {
             if (m_fontIcon) DeleteObject(m_fontIcon);
             if (m_fontValue) DeleteObject(m_fontValue);
+            if (m_fontTitle) DeleteObject(m_fontTitle);
             if (m_hEditBgBrush) DeleteObject(m_hEditBgBrush);
             return 0;
         }

@@ -62,17 +62,17 @@ public:
         bounds = {x, y, x + width, y + height};
         sizeMode = mode;
         
-        int iconWidth = (mode == SizeMode::Sleek) ? 26 : ((mode == SizeMode::Large) ? 38 : 32);
-        int numBoxWidth = (mode == SizeMode::Sleek) ? 40 : ((mode == SizeMode::Large) ? 54 : 46);
-        int numBoxHeight = (mode == SizeMode::Sleek) ? 22 : ((mode == SizeMode::Large) ? 30 : 26);
-        int trackHeight = (mode == SizeMode::Sleek) ? 3 : ((mode == SizeMode::Large) ? 6 : 4);
+        int iconWidth = (mode == SizeMode::Sleek) ? 20 : ((mode == SizeMode::Large) ? 28 : 24);
+        int numBoxWidth = (mode == SizeMode::Sleek) ? 32 : ((mode == SizeMode::Large) ? 44 : 38);
+        int numBoxHeight = (mode == SizeMode::Sleek) ? 18 : ((mode == SizeMode::Large) ? 24 : 20);
+        int trackHeight = (mode == SizeMode::Sleek) ? 2 : ((mode == SizeMode::Large) ? 4 : 3);
         int centerY = y + height / 2;
 
-        iconRect = {x + 2, y, x + iconWidth, y + height};
-        numBoxRect = {x + width - numBoxWidth - 4, centerY - numBoxHeight / 2, x + width - 4, centerY + numBoxHeight / 2};
+        iconRect = {x, y, x + iconWidth, y + height};
+        numBoxRect = {x + width - numBoxWidth, centerY - numBoxHeight / 2, x + width, centerY + numBoxHeight / 2};
         
         int trackLeft = x + iconWidth + 10;
-        int trackRight = numBoxRect.left - 12;
+        int trackRight = numBoxRect.left - 10;
         int trackTop = centerY - trackHeight / 2;
         trackRect = {trackLeft, trackTop, trackRight, trackTop + trackHeight};
 
@@ -247,7 +247,7 @@ public:
         DrawTextW(hdc, icon.c_str(), -1, &ic, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
         // 2. Draw Track background (unfilled)
-        HBRUSH hBrushTrackBg = CreateSolidBrush(theme.isDark ? RGB(75, 75, 75) : RGB(215, 215, 215));
+        HBRUSH hBrushTrackBg = CreateSolidBrush(theme.trackBg);
         HPEN hNullPen = (HPEN)GetStockObject(NULL_PEN);
         HPEN hOldPen = (HPEN)SelectObject(hdc, hNullPen);
         HBRUSH hOldBrush = (HBRUSH)SelectObject(hdc, hBrushTrackBg);
@@ -264,13 +264,13 @@ public:
             DeleteObject(hBrushAccent);
         }
 
-        // 4. Draw Thumb Knob (scaled by SizeMode)
-        int baseRadius = (sizeMode == SizeMode::Sleek) ? 6 : ((sizeMode == SizeMode::Large) ? 10 : 8);
-        int thumbRadius = isDragging ? (baseRadius + 2) : (isHovered ? (baseRadius + 1) : baseRadius);
+        // 4. Draw Thumb Knob (scaled by SizeMode) with white border
+        int baseRadius = (sizeMode == SizeMode::Sleek) ? 5 : ((sizeMode == SizeMode::Large) ? 8 : 6);
+        int thumbRadius = isDragging ? (baseRadius + 1) : (isHovered ? (baseRadius + 1) : baseRadius);
         int centerY = (trackRect.top + trackRect.bottom) / 2;
 
         HBRUSH hThumbBrush = CreateSolidBrush(theme.accent);
-        HPEN hThumbPen = CreatePen(PS_SOLID, 2, theme.isDark ? RGB(32, 32, 32) : RGB(255, 255, 255));
+        HPEN hThumbPen = CreatePen(PS_SOLID, 2, RGB(255, 255, 255));
         SelectObject(hdc, hThumbBrush);
         SelectObject(hdc, hThumbPen);
 
@@ -285,16 +285,16 @@ public:
         // 5. Draw Editable Number Box badge
         if (!isEditing) {
             COLORREF numBg = isNumBoxHovered 
-                ? (theme.isDark ? RGB(54, 54, 54) : RGB(232, 232, 232))
-                : (theme.isDark ? RGB(42, 42, 42) : RGB(245, 245, 245));
-            COLORREF numBorder = isNumBoxHovered ? theme.accent : theme.border;
+                ? (theme.isDark ? RGB(50, 50, 50) : RGB(230, 230, 230))
+                : (theme.isDark ? RGB(38, 38, 38) : RGB(242, 242, 242));
+            COLORREF numBorder = isNumBoxHovered ? theme.accent : (theme.isDark ? RGB(58, 58, 58) : RGB(218, 218, 218));
 
             HBRUSH hNumBg = CreateSolidBrush(numBg);
             HPEN hNumPen = CreatePen(PS_SOLID, 1, numBorder);
             HBRUSH oB = (HBRUSH)SelectObject(hdc, hNumBg);
             HPEN oP = (HPEN)SelectObject(hdc, hNumPen);
 
-            RoundRect(hdc, numBoxRect.left, numBoxRect.top, numBoxRect.right, numBoxRect.bottom, 6, 6);
+            RoundRect(hdc, numBoxRect.left, numBoxRect.top, numBoxRect.right, numBoxRect.bottom, 4, 4);
 
             SelectObject(hdc, oP);
             SelectObject(hdc, oB);
