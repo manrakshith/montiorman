@@ -42,6 +42,10 @@
 ### Prerequisites
 - Modern MinGW-w64 toolchain (GCC 11+ recommended) or Microsoft Visual C++ (MSVC)
 - Windows SDK (for standard headers and `dxva2.lib`)
+- **NSIS (Nullsoft Scriptable Install System)** *(required only for building the setup installer)*:
+  ```cmd
+  winget install NSIS.NSIS
+  ```
 
 ### Quick Build (MinGW)
 Run the included build script to compile the standalone binary:
@@ -51,6 +55,8 @@ build.bat
 The compiled binary will be generated at `bin\monitorman.exe`.
 
 ### Building the Installer (NSIS)
+> **Note**: Building the installer requires **NSIS** (`makensis.exe`). If not installed, run `winget install NSIS.NSIS`.
+
 To generate the single-file setup wizard (`bin\MonitorMan_Setup.exe`):
 ```cmd
 build_installer.bat
